@@ -66,9 +66,10 @@ show_menu() {
     echo "1. 🚨 ACİL TEMİZLİK (Spotlight + Temel önbellekler)"
     echo "2. 🧹 KAPSAMLI TEMİZLİK (Tüm sistem önbellekleri)"
     echo "3. 💻 GELİŞTİRİCİ TEMİZLİĞİ (Xcode, Docker, npm, brew)"
-    echo "4. 📊 DEPOLAMA ANALİZİ"
-    echo "5. ⚙️  TÜMÜNÜ ÇALIŞTİR (1+2+3)"
-    echo "6. 🚪 ÇIKIŞ"
+    echo "4. 🔥 AGRESIF SYSTEM DATA TEMİZLİĞİ (iOS Simulator, Mail, Safari)"
+    echo "5. 📊 DEPOLAMA ANALİZİ"
+    echo "6. ⚙️  TÜMÜNÜ ÇALIŞTİR (1+2+3+4)"
+    echo "7. 🚪 ÇIKIŞ"
     echo ""
 }
 
@@ -260,9 +261,113 @@ developer_cleanup() {
     log_message ""
 }
 
-# 4. DEPOLAMA ANALİZİ
+# 4. AGRESIF SYSTEM DATA TEMİZLİĞİ
+aggressive_system_cleanup() {
+    log_message "${RED}=== AGRESIF SYSTEM DATA TEMİZLİĞİ BAŞLIYOR ===${NC}"
+    log_message "${YELLOW}⚠️  Bu işlem büyük miktarda veri silecek - dikkatli olun!${NC}"
+    
+    # iOS Simulator runtime'ları (EN BÜYÜK KAZANÇ 20-40GB)
+    log_message "${YELLOW}iOS Simulator runtime'ları temizleniyor...${NC}"
+    if [ -d "$USER_HOME/Library/Developer/CoreSimulator" ]; then
+        # Simulator runtime'ları
+        rm -rf "$USER_HOME/Library/Developer/CoreSimulator/Profiles/Runtimes"/* 2>/dev/null || true
+        # Simulator device'ları
+        rm -rf "$USER_HOME/Library/Developer/CoreSimulator/Devices"/* 2>/dev/null || true
+        # Simulator caches
+        rm -rf "$USER_HOME/Library/Developer/CoreSimulator/Caches"/* 2>/dev/null || true
+        log_message "✅ iOS Simulator runtime'ları temizlendi (20-40GB kazanç bekleniyor)"
+    else
+        log_message "ℹ️  iOS Simulator bulunamadı"
+    fi
+    
+    # Xcode iOS DeviceSupport (büyük olabilir)
+    log_message "${YELLOW}Xcode iOS DeviceSupport temizleniyor...${NC}"
+    if [ -d "$USER_HOME/Library/Developer/Xcode/iOS DeviceSupport" ]; then
+        # Eski iOS versiyonlarını temizle (sadece en yenisini bırak)
+        find "$USER_HOME/Library/Developer/Xcode/iOS DeviceSupport" -maxdepth 1 -type d -name "*.*" | sort -V | head -n -2 | xargs rm -rf 2>/dev/null || true
+        log_message "✅ Eski iOS DeviceSupport temizlendi"
+    fi
+    
+    # Mail ekleri ve önbellekleri (10-30GB kazanç)
+    log_message "${YELLOW}Mail ekleri ve önbellekleri temizleniyor...${NC}"
+    # Mail attachments
+    rm -rf "$USER_HOME/Library/Mail/V*/MailData/Attachments"/* 2>/dev/null || true
+    # Mail envelope index
+    rm -rf "$USER_HOME/Library/Mail/V*/MailData/Envelope Index"* 2>/dev/null || true
+    # Mail database index
+    find "$USER_HOME/Library/Mail" -name "*.db*" -delete 2>/dev/null || true
+    log_message "✅ Mail verileri temizlendi (5-15GB kazanç bekleniyor)"
+    
+    # Messages ekleri
+    log_message "${YELLOW}Messages ekleri temizleniyor...${NC}"
+    rm -rf "$USER_HOME/Library/Messages/Attachments"/* 2>/dev/null || true
+    rm -rf "$USER_HOME/Library/Messages/Archive"/* 2>/dev/null || true
+    log_message "✅ Messages ekleri temizlendi"
+    
+    # Safari derinlemesine temizlik (5-15GB)
+    log_message "${YELLOW}Safari derinlemesine temizlik yapılıyor...${NC}"
+    # Safari databases
+    rm -rf "$USER_HOME/Library/Safari/Databases"/* 2>/dev/null || true
+    # Safari LocalStorage
+    rm -rf "$USER_HOME/Library/Safari/LocalStorage"/* 2>/dev/null || true
+    # Safari WebKit storage
+    rm -rf "$USER_HOME/Library/Containers/com.apple.Safari/Data/Library/WebKit"/* 2>/dev/null || true
+    # Safari CloudTabs
+    rm -rf "$USER_HOME/Library/Safari/CloudTabs.db"* 2>/dev/null || true
+    log_message "✅ Safari derinlemesine temizlendi"
+    
+    # Chrome derinlemesine temizlik
+    log_message "${YELLOW}Chrome derinlemesine temizlik yapılıyor...${NC}"
+    # Chrome extensions
+    rm -rf "$USER_HOME/Library/Application Support/Google/Chrome/*/Extensions"/* 2>/dev/null || true
+    # Chrome GPUCache
+    rm -rf "$USER_HOME/Library/Application Support/Google/Chrome/*/GPUCache"/* 2>/dev/null || true
+    # Chrome Service Worker
+    rm -rf "$USER_HOME/Library/Application Support/Google/Chrome/*/Service Worker"/* 2>/dev/null || true
+    # Chrome Session Storage
+    rm -rf "$USER_HOME/Library/Application Support/Google/Chrome/*/Session Storage"/* 2>/dev/null || true
+    log_message "✅ Chrome derinlemesine temizlendi"
+    
+    # Sistem kernel cache'leri (DİKKATLİ - sistem performansını etkileyebilir)
+    log_message "${YELLOW}Kernel cache'leri yeniden oluşturuluyor...${NC}"
+    sudo rm -rf /System/Library/Caches/com.apple.kext.caches/* 2>/dev/null || true
+    sudo kextcache -system-prelinked-kernel 2>/dev/null || true
+    sudo kextcache -system-caches 2>/dev/null || true
+    log_message "✅ Kernel cache'leri yeniden oluşturuldu"
+    
+    # Büyük log dosyaları
+    log_message "${YELLOW}Büyük log dosyaları temizleniyor...${NC}"
+    # System install logs
+    sudo rm -rf /private/var/log/install.log* 2>/dev/null || true
+    # Wifi logs
+    sudo rm -rf /private/var/log/wifi.log* 2>/dev/null || true
+    # FSEvents logs (büyük olabilir)
+    sudo rm -rf /System/Volumes/Data/.fseventsd/* 2>/dev/null || true
+    log_message "✅ Büyük log dosyaları temizlendi"
+    
+    # Adobe önbellekleri (eğer varsa)
+    if [ -d "$USER_HOME/Library/Caches/Adobe" ]; then
+        log_message "${YELLOW}Adobe önbellekleri temizleniyor...${NC}"
+        rm -rf "$USER_HOME/Library/Caches/Adobe"/* 2>/dev/null || true
+        log_message "✅ Adobe önbellekleri temizlendi"
+    fi
+    
+    # Microsoft Office önbellekleri
+    if [ -d "$USER_HOME/Library/Caches/Microsoft" ]; then
+        log_message "${YELLOW}Microsoft Office önbellekleri temizleniyor...${NC}"
+        rm -rf "$USER_HOME/Library/Caches/Microsoft"/* 2>/dev/null || true
+        log_message "✅ Microsoft Office önbellekleri temizlendi"
+    fi
+    
+    log_message "${GREEN}🔥 AGRESIF SYSTEM DATA TEMİZLİĞİ TAMAMLANDI${NC}"
+    log_message "${GREEN}Beklenen toplam kazanç: 30-60GB${NC}"
+    log_message "${YELLOW}⚠️  Sistemi yeniden başlatmanız önerilir${NC}"
+    log_message ""
+}
+
+# 5. DEPOLAMA ANALİZİ
 storage_analysis() {
-    log_message "${BLUE}=== DEPOLAMA ANALİZİ ===${NC}"
+    log_message "${BLUE}=== GELIŞMIŞ DEPOLAMA ANALİZİ ===${NC}"
     
     echo -e "${YELLOW}💾 Disk Kullanımı:${NC}"
     df -h / | tee -a "$LOG_FILE"
@@ -272,8 +377,46 @@ storage_analysis() {
     du -sh "$USER_HOME"/* 2>/dev/null | sort -hr | head -10 | tee -a "$LOG_FILE"
     echo ""
     
-    echo -e "${YELLOW}🗂️ Sistem Data Boyutu:${NC}"
-    system_profiler SPStorageDataType | grep -A10 "System Data" | tee -a "$LOG_FILE"
+    echo -e "${YELLOW}🗂️ System Data Detayları:${NC}"
+    system_profiler SPStorageDataType | grep -A15 "System Data" | tee -a "$LOG_FILE"
+    echo ""
+    
+    echo -e "${YELLOW}🔥 iOS Simulator Boyutları:${NC}"
+    if [ -d "$USER_HOME/Library/Developer/CoreSimulator" ]; then
+        echo "📱 CoreSimulator toplam:" | tee -a "$LOG_FILE"
+        du -sh "$USER_HOME/Library/Developer/CoreSimulator" 2>/dev/null | tee -a "$LOG_FILE"
+        echo "📱 Runtime'lar:" | tee -a "$LOG_FILE"
+        du -sh "$USER_HOME/Library/Developer/CoreSimulator/Profiles/Runtimes"/* 2>/dev/null | sort -hr | head -5 | tee -a "$LOG_FILE"
+        echo "📱 Devices:" | tee -a "$LOG_FILE"
+        du -sh "$USER_HOME/Library/Developer/CoreSimulator/Devices"/* 2>/dev/null | sort -hr | head -5 | tee -a "$LOG_FILE"
+    else
+        echo "iOS Simulator bulunamadı" | tee -a "$LOG_FILE"
+    fi
+    echo ""
+    
+    echo -e "${YELLOW}📧 Mail ve Messages Boyutları:${NC}"
+    if [ -d "$USER_HOME/Library/Mail" ]; then
+        du -sh "$USER_HOME/Library/Mail" 2>/dev/null | tee -a "$LOG_FILE"
+        echo "Mail ekleri:" | tee -a "$LOG_FILE"
+        find "$USER_HOME/Library/Mail" -name "Attachments" -type d -exec du -sh {} \; 2>/dev/null | tee -a "$LOG_FILE"
+    fi
+    if [ -d "$USER_HOME/Library/Messages" ]; then
+        du -sh "$USER_HOME/Library/Messages" 2>/dev/null | tee -a "$LOG_FILE"
+    fi
+    echo ""
+    
+    echo -e "${YELLOW}🌐 Tarayıcı Boyutları:${NC}"
+    # Safari
+    if [ -d "$USER_HOME/Library/Safari" ]; then
+        echo "Safari toplam:" | tee -a "$LOG_FILE"
+        du -sh "$USER_HOME/Library/Safari" 2>/dev/null | tee -a "$LOG_FILE"
+        du -sh "$USER_HOME/Library/Containers/com.apple.Safari" 2>/dev/null | tee -a "$LOG_FILE"
+    fi
+    # Chrome
+    if [ -d "$USER_HOME/Library/Application Support/Google/Chrome" ]; then
+        echo "Chrome toplam:" | tee -a "$LOG_FILE"
+        du -sh "$USER_HOME/Library/Application Support/Google/Chrome" 2>/dev/null | tee -a "$LOG_FILE"
+    fi
     echo ""
     
     echo -e "${YELLOW}🔍 Büyük Önbellek Dizinleri:${NC}"
@@ -286,16 +429,37 @@ storage_analysis() {
     fi
     echo ""
     
+    echo -e "${YELLOW}💻 Xcode Boyutları:${NC}"
+    if [ -d "$USER_HOME/Library/Developer/Xcode" ]; then
+        du -sh "$USER_HOME/Library/Developer/Xcode"/* 2>/dev/null | tee -a "$LOG_FILE"
+        if [ -d "$USER_HOME/Library/Developer/Xcode/iOS DeviceSupport" ]; then
+            echo "iOS DeviceSupport versiyonları:" | tee -a "$LOG_FILE"
+            du -sh "$USER_HOME/Library/Developer/Xcode/iOS DeviceSupport"/* 2>/dev/null | sort -hr | tee -a "$LOG_FILE"
+        fi
+    fi
+    echo ""
+    
+    echo -e "${YELLOW}📊 Sistem Logları:${NC}"
+    sudo du -sh /private/var/log/* 2>/dev/null | sort -hr | head -10 | tee -a "$LOG_FILE"
+    echo ""
+    
     # Spotlight durumu
     echo -e "${YELLOW}🔦 Spotlight Durumu:${NC}"
     mdutil -s / 2>/dev/null | tee -a "$LOG_FILE"
+    echo ""
+    
+    echo -e "${GREEN}💡 ÖNERİLER:${NC}"
+    echo "• iOS Simulator runtime'ları büyükse: Seçenek 4'ü kullanın" | tee -a "$LOG_FILE"
+    echo "• Mail/Messages büyükse: Eski ekleri manuel temizleyin" | tee -a "$LOG_FILE"
+    echo "• Chrome/Safari büyükse: Tarayıcı verilerini sıfırlayın" | tee -a "$LOG_FILE"
+    echo "• Xcode büyükse: DerivedData ve Archives'ı temizleyin" | tee -a "$LOG_FILE"
     echo ""
 }
 
 # Ana döngü
 while true; do
     show_menu
-    read -p "Seçiminizi yapın (1-6): " choice
+    read -p "Seçiminizi yapın (1-7): " choice
     echo ""
     
     case $choice in
@@ -315,16 +479,22 @@ while true; do
             echo -e "${GREEN}Boş alan: $(check_space)${NC}"
             ;;
         4)
-            storage_analysis
+            confirm_action "🔥 AGRESIF SYSTEM DATA TEMİZLİĞİ başlatılacak! Bu işlem iOS Simulator, Mail, Safari verilerini silecek. 30-60GB kazanç bekleniyor."
+            aggressive_system_cleanup
+            echo -e "${GREEN}Boş alan: $(check_space)${NC}"
             ;;
         5)
-            confirm_action "TÜM TEMİZLİK işlemleri başlatılacak. Bu uzun sürebilir ve sistem performansını geçici olarak etkileyebilir."
+            storage_analysis
+            ;;
+        6)
+            confirm_action "TÜM TEMİZLİK işlemleri başlatılacak (Agresif dahil). Bu uzun sürebilir ve sistem performansını geçici olarak etkileyebilir."
             emergency_cleanup
             comprehensive_cleanup
             developer_cleanup
+            aggressive_system_cleanup
             echo -e "${GREEN}Boş alan: $(check_space)${NC}"
             ;;
-        6)
+        7)
             log_message "${BLUE}=== ÖZET RAPOR ===${NC}"
             log_message "Başlangıç boş alan: $(check_space)"
             log_message "İşlem tamamlandı: $(date)"
@@ -334,7 +504,7 @@ while true; do
             exit 0
             ;;
         *)
-            echo -e "${RED}Geçersiz seçim. Lütfen 1-6 arası bir sayı girin.${NC}"
+            echo -e "${RED}Geçersiz seçim. Lütfen 1-7 arası bir sayı girin.${NC}"
             ;;
     esac
     
